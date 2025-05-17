@@ -1,0 +1,25 @@
+version: '3'
+services:
+  antink-server:
+    build:
+      context: .
+    container_name: soal_3-antink-server
+    privileged: true
+    devices:
+      - /dev/fuse
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - ./it24_host:/it24_host
+      - ./antink_mount:/antink_mount
+      - ./logs:/var/log
+    command: ["/antink/antink_fuse", "/it24_host", "/antink_mount"]
+
+  antink-logger:
+    image: debian:bookworm
+    container_name: soal_3-antink-logger
+    volumes:
+      - ./logs:/var/log
+    command: tail -f /var/log/it24.log
