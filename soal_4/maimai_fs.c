@@ -300,5 +300,23 @@ static struct fuse_operations maimai_oper = {
 int main(int argc, char *argv[]) {
     umask(0);
     srand(time(NULL));
+
+    // Buat BASEDIR jika belum ada
+    struct stat st;
+    if (stat(BASEDIR, &st) == -1) {
+        mkdir(BASEDIR, 0755);
+    }
+
+    // Buat subdirektori untuk tiap chiho (kecuali 7sref)
+    const char *chiho[] = {"starter", "metro", "dragon", "blackrose", "heaven", "youth"};
+    int chiho_count = sizeof(chiho) / sizeof(chiho[0]);
+    for (int i = 0; i < chiho_count; i++) {
+        char subdir[PATH_MAX];
+        snprintf(subdir, PATH_MAX, "%s/%s", BASEDIR, chiho[i]);
+        if (stat(subdir, &st) == -1) {
+            mkdir(subdir, 0755);
+        }
+    }
+
     return fuse_main(argc, argv, &maimai_oper, NULL);
 }
