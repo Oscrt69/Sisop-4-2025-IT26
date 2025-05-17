@@ -173,7 +173,23 @@ int write_youth(const char *fpath, const char *buf, size_t size) {
 #include <sys/time.h>
 
 // ======================== HELPER: Get Real Path =========================
+// ======================== HELPER: Get Real Path (dengan validasi) =========================
+int is_valid_chiho(const char *chiho) {
+    const char *valid[] = {"starter", "metro", "dragon", "blackrose", "heaven", "youth", "7sref"};
+    int n = sizeof(valid) / sizeof(valid[0]);
+    for (int i = 0; i < n; i++) {
+        if (strcmp(chiho, valid[i]) == 0) return 1;
+    }
+    return 0;
+}
+
 void get_real_path(const char *path, char *resolved) {
+    char chiho[32];
+    if (sscanf(path, "/%31[^/]/", chiho) == 1 && !is_valid_chiho(chiho)) {
+        strcpy(resolved, "");  // invalid chiho, kosongkan path agar error
+        return;
+    }
+
     if (strncmp(path, "/starter/", 9) == 0)
         snprintf(resolved, PATH_MAX, "%s/starter%s.mai", BASEDIR, path + 8);
     else if (strncmp(path, "/metro/", 7) == 0)
@@ -187,9 +203,13 @@ void get_real_path(const char *path, char *resolved) {
     else if (strncmp(path, "/youth/", 7) == 0)
         snprintf(resolved, PATH_MAX, "%s/youth%s.gz", BASEDIR, path + 6);
     else if (strncmp(path, "/7sref/", 7) == 0) {
-        char chiho[32], nama[256];
-        sscanf(path + 7, "%[^_]_%s", chiho, nama);
-        snprintf(resolved, PATH_MAX, "%s/%s/%s", BASEDIR, chiho, nama);
+        char area[32], file[256];
+        sscanf(path + 7, "%31[^_]_%255s", area, file);
+        if (!is_valid_chiho(area)) {
+            strcpy(resolved, "");  // invalid chiho area
+            return;
+        }
+        snprintf(resolved, PATH_MAX, "%s/%s/%s", BASEDIR, area, file);
     } else {
         snprintf(resolved, PATH_MAX, "%s%s", BASEDIR, path);
     }
@@ -286,6 +306,14 @@ static int fs_unlink(const char *path) {
     return r;
 }
 
+static int fs_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *fi) {
+    char fpath[PATH_MAX];
+    get_real_path(path, fpath);
+    if (strlen(fpath) == 0) return -ENOENT;
+    log_action("UTIMENS", path);
+    return utimensat(0, fpath, tv, 0);
+}
+
 // ======================== Mount & Oper =========================
 static struct fuse_operations maimai_oper = {
     .getattr = fs_getattr,
@@ -295,16 +323,31 @@ static struct fuse_operations maimai_oper = {
     .write = fs_write,
     .create = fs_create,
     .unlink = fs_unlink,
+    .utimens = fs_utimens,
 };
 
 int main(int argc, char *argv[]) {
     umask(0);
     srand(time(NULL));
 
+    // Buat mountpoint jika belum ada
+    if (argc >= 2) {
+        struct stat st;
+        if (stat(argv[1], &st) == -1) {
+            if (mkdir(argv[1], 0755) == -1) {
+                perror("Failed to create mountpoint");
+                return 1;
+            } else {
+                log_action("MKDIR", argv[1]);
+            }
+        }
+    }
+
     // Buat BASEDIR jika belum ada
     struct stat st;
     if (stat(BASEDIR, &st) == -1) {
         mkdir(BASEDIR, 0755);
+        log_action("MKDIR", BASEDIR);
     }
 
     // Buat subdirektori untuk tiap chiho (kecuali 7sref)
@@ -315,8 +358,10 @@ int main(int argc, char *argv[]) {
         snprintf(subdir, PATH_MAX, "%s/%s", BASEDIR, chiho[i]);
         if (stat(subdir, &st) == -1) {
             mkdir(subdir, 0755);
+            log_action("MKDIR", subdir);
         }
     }
 
     return fuse_main(argc, argv, &maimai_oper, NULL);
 }
+
