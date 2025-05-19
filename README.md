@@ -9,9 +9,10 @@
 # Soal 2
 # Soal 3
 
-Cara compile soal ini.<br>
-Jalankan Docker Compose dengan ``docker-compose build --no-cache`` lalu `docker-compose up`<br>
 Cara melihat daftar container `sudo docker ps -a` <br>
+
+### Cara compile soal ini.<br>
+Jalankan Docker Compose dengan ``docker-compose build --no-cache`` lalu `docker-compose up`<br>
 Buka terminal baru lalu jalankan `docker exec antink-server ls /antink_mount` <br>
 Lalu hapus container dengan `sudo docker-compose down` <br>
 
