@@ -1,25 +1,24 @@
-version: '3'
+version: '3.8'
+
 services:
   antink-server:
-    build:
-      context: .
-    container_name: soal_3-antink-server
+    build: .
+    container_name: antink-server
     privileged: true
-    devices:
-      - /dev/fuse
+    volumes:
+      - ./it24_host:/it24_host:rw
+      - ./antink_mount:/antink_mount:rw
+      - ./antink-logs:/antink-system/antink-logs:rw
     cap_add:
       - SYS_ADMIN
-    security_opt:
-      - apparmor:unconfined
-    volumes:
-      - ./it24_host:/it24_host
-      - ./antink_mount:/antink_mount
-      - ./logs:/var/log
-    command: ["/antink/antink_fuse", "/it24_host", "/antink_mount"]
+    devices:
+      - /dev/fuse
 
   antink-logger:
-    image: debian:bookworm
-    container_name: soal_3-antink-logger
+    image: ubuntu:22.04
+    container_name: antink-logger
+    depends_on:
+      - antink-server
     volumes:
-      - ./logs:/var/log
-    command: tail -f /var/log/it24.log
+      - ./antink-logs:/antink-system/antink-logs:ro
+    command: ["sh", "-c", "tail -f /antink-system/antink-logs/it24.log"]
