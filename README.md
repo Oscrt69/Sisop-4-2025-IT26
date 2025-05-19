@@ -10,9 +10,9 @@
 # Soal 3
 
 Cara compile soal ini.<br>
-Jalankan Docker Compose dengan `docker-compose up --build` <br>
+Jalankan Docker Compose dengan ``docker-compose build --no-cache`` lalu `docker-compose up`<br>
 Cara melihat daftar container `sudo docker ps -a` <br>
-Buka terminal baru lalu jalankan `docker exec -it soal_3-antink-server ls /antink_mount` <br>
+Buka terminal baru lalu jalankan `docker exec antink-server ls /antink_mount` <br>
 Lalu hapus container dengan `sudo docker-compose down` <br>
 
 # Soal 4
