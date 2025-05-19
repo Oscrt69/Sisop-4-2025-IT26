@@ -8,4 +8,10 @@
 # Soal 1
 # Soal 2
 # Soal 3
+
+Cara compile soal ini.<br>
+Jalankan Docker Compose dengan `docker-compose up --build` <br>
+Buka terminal baru lalu jalankan `docker exec -it soal_3-antink-server ls /antink_mount` <br>
+Lalu hapus container dengan `sudo docker-compose down` <br>
+
 # Soal 4
