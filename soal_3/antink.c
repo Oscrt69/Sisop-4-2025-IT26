@@ -115,6 +115,12 @@ static int antink_read(const char *path, char *buf, size_t size, off_t offset, s
     if (!is_dangerous(path)) {
         rot13(buf);
         log_activity("ENCRYPT", path);
+        if (buf[res - 1] != '\n') {
+        if (res < size) {
+            buf[res] = '\n';
+            res += 1;
+        }
+    }
     } else {
         log_activity("ALERT", path);
     }
