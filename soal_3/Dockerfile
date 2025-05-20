@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY antink.c /app/
 
+ENV TZ=Asia/Jakarta
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 RUN gcc -Wall antink.c `pkg-config fuse3 --cflags --libs` -o antink
 
 RUN mkdir -p /antink_mount /it24_host /antink-system/antink-logs
