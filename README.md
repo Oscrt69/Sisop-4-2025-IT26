@@ -32,7 +32,7 @@ static void log_activity(const char *format, ...) {
     fclose(logf);
 }
 ```
-Fungsi ini bertugas mencatat aktivitas pengguna ke dalam sebuah file log bernama activity.log. Setiap kali user melakukan aksi seperti membaca file, membuka direktori, atau mengakses atribut file, fungsi ini dipanggil untuk mencatat kejadian tersebut. Fungsi menerima parameter format seperti printf, sehingga fleksibel dalam mencatat berbagai bentuk informasi. Pertama-tama, waktu saat kejadian direkam menggunakan time() dan localtime(), lalu waktu tersebut diformat menjadi string waktu lokal. Setelah itu, file log dibuka dalam mode append (a), sehingga data baru tidak menimpa catatan sebelumnya. Jika file log berhasil dibuka, maka baris log baru akan ditulis menggunakan vfprintf, mencatat timestamp dan pesan sesuai format. File ditutup kembali setelah selesai menulis. Fungsi ini penting untuk keperluan audit, debugging, atau sekadar mencatat aktivitas filesystem buatan ini.
+Fungsi ini bertugas mencatat aktivitas pengguna ke dalam sebuah file log bernama `activity.log` Setiap kali user melakukan aksi seperti membaca file, membuka direktori, atau mengakses atribut file, fungsi ini dipanggil untuk mencatat kejadian tersebut. Fungsi menerima parameter format seperti `printf`, sehingga fleksibel dalam mencatat berbagai bentuk informasi. Pertama-tama, waktu saat kejadian direkam menggunakan `time()` dan `localtime()`, lalu waktu tersebut diformat menjadi string waktu lokal. Setelah itu, file log dibuka dalam mode append (a), sehingga data baru tidak menimpa catatan sebelumnya. Jika file log berhasil dibuka, maka baris log baru akan ditulis menggunakan `vfprintf`, mencatat timestamp dan pesan sesuai format. File ditutup kembali setelah selesai menulis. Fungsi ini penting untuk keperluan audit, debugging, atau sekadar mencatat aktivitas filesystem buatan ini.
 
 ```
 static int baymax_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
@@ -68,7 +68,7 @@ static int baymax_getattr(const char *path, struct stat *stbuf, struct fuse_file
         }
         closedir(dp);
 ```
-Fungsi ini menangani permintaan untuk mendapatkan atribut file atau direktori, mirip dengan perintah stat atau ls -l dalam sistem file biasa. FUSE akan memanggil fungsi ini ketika user mencoba mengetahui informasi seperti ukuran file, tipe (file atau direktori), dan permission. Jika path yang diminta adalah root ("/"), maka stbuf diatur sebagai direktori biasa dengan mode 0755 dan jumlah link 2 (default). Namun, jika path adalah "/Baymax.jpeg", maka fungsi akan membuka direktori BASE_DIR yang berisi potongan file JPEG. Fungsi lalu membaca seluruh isi direktori tersebut dan menjumlahkan ukuran semua file yang memiliki awalan Baymax.jpeg. dan diikuti oleh angka (misalnya Baymax.jpeg.1, Baymax.jpeg.2, dst). Ukuran gabungan tersebut akan dianggap sebagai ukuran total Baymax.jpeg. Fungsi ini membuat seolah-olah file utuh Baymax.jpeg benar-benar ada, meskipun sebenarnya hanya kumpulan potongan.
+Fungsi ini menangani permintaan untuk mendapatkan atribut file atau direktori, mirip dengan perintah `stat` atau `ls -l` dalam sistem file biasa. FUSE akan memanggil fungsi ini ketika user mencoba mengetahui informasi seperti ukuran file, tipe (file atau direktori), dan permission. Jika path yang diminta adalah root `("/")`, maka `stbuf` diatur sebagai direktori biasa dengan mode 0755 dan jumlah link 2 (default). Namun, jika path adalah `"/Baymax.jpeg"`, maka fungsi akan membuka direktori `BASE_DIR` yang berisi potongan file JPEG. Fungsi lalu membaca seluruh isi direktori tersebut dan menjumlahkan ukuran semua file yang memiliki awalan `Baymax.jpeg`. dan diikuti oleh angka (misalnya `Baymax.jpeg.1`, `Baymax.jpeg.2`, dst). Ukuran gabungan tersebut akan dianggap sebagai ukuran total `Baymax.jpeg`. Fungsi ini membuat seolah-olah file utuh `Baymax.jpeg` benar-benar ada.
 
 ```
 stbuf->st_mode = S_IFREG | 0444;
@@ -80,7 +80,7 @@ stbuf->st_mode = S_IFREG | 0444;
     return -ENOENT;
 }
 ```
-merupakan bagian dari fungsi baymax_getattr, yang bertugas memberikan informasi atribut (metadata) dari sebuah file atau direktori dalam filesystem FUSE.
+merupakan bagian dari fungsi `baymax_getattr`, yang bertugas memberikan informasi atribut (metadata) dari sebuah file atau direktori dalam filesystem FUSE.
 
 ```
 static int baymax_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
@@ -100,7 +100,7 @@ static int baymax_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     return 0;
 }
 ```
-Fungsi ini dipanggil saat isi direktori diminta oleh user, seperti saat menggunakan perintah ls. Fungsi akan menentukan daftar file dan folder yang akan ditampilkan. Pada implementasi ini, jika path adalah root ("/"), maka fungsi akan mengisi buf dengan tiga entri: "." (direktori saat ini), ".." (direktori induk), dan "Baymax.jpeg". Hanya file virtual Baymax.jpeg yang ditampilkan, terlepas dari berapa banyak chunk yang ada di BASE_DIR. Artinya, user hanya melihat satu file utuh dalam sistem ini, meskipun di balik layar file tersebut terdiri dari banyak bagian. Fungsi ini tidak menampilkan file chunk secara langsung, sehingga menjaga abstraksi dan memberikan pengalaman pengguna seperti berinteraksi dengan filesystem biasa.
+Fungsi ini dipanggil saat isi direktori diminta oleh user, seperti saat menggunakan perintah `ls`. Fungsi akan menentukan daftar file dan folder yang akan ditampilkan. Pada implementasi ini, jika path adalah root `("/")`, maka fungsi akan mengisi buf dengan tiga entri: `"."` (direktori saat ini), ".." (direktori induk), dan `"Baymax.jpeg"`. Hanya file virtual Baymax.jpeg yang ditampilkan, terlepas dari berapa banyak chunk yang ada di `BASE_DIR`. Artinya, user hanya melihat satu file utuh dalam sistem ini, meskipun di balik layar file tersebut terdiri dari banyak bagian. Fungsi ini tidak menampilkan file chunk secara langsung, sehingga menjaga abstraksi dan memberikan pengalaman pengguna seperti berinteraksi dengan filesystem biasa.
 
 ```
 static int baymax_open(const char *path, struct fuse_file_info *fi) {
@@ -115,7 +115,7 @@ static int baymax_open(const char *path, struct fuse_file_info *fi) {
     return 0;
 }
 ```
-Fungsi ini menangani permintaan untuk membuka file. Dalam filesystem ini, hanya file Baymax.jpeg yang bisa diakses. Jika user mencoba membuka file selain Baymax.jpeg, maka fungsi akan mengembalikan error -ENOENT (file tidak ditemukan). Selain itu, fungsi juga memeriksa apakah file dibuka dalam mode selain read-only (O_RDONLY). Karena file ini hanya bisa dibaca, bukan ditulis atau dimodifikasi, maka setiap percobaan membuka file dengan mode lain akan ditolak dengan error -EACCES (akses ditolak). Jika semua validasi lolos, fungsi mencatat bahwa file berhasil dibuka ke file log. Dengan demikian, fungsi ini memastikan hanya file virtual yang valid yang bisa diakses, dan hanya dalam mode baca, demi menjaga konsistensi dan integritas data virtual.
+Fungsi ini menangani permintaan untuk membuka file. Dalam filesystem ini, hanya file `Baymax.jpeg` yang bisa diakses. Jika user mencoba membuka file selain `Baymax.jpeg`, maka fungsi akan mengembalikan error `-ENOENT` (file tidak ditemukan). Selain itu, fungsi juga memeriksa apakah file dibuka dalam mode selain read-only (`O_RDONLY`). Karena file ini hanya bisa dibaca, bukan ditulis atau dimodifikasi, maka setiap percobaan membuka file dengan mode lain akan ditolak dengan error `-EACCES` (akses ditolak). Jika semua validasi lolos, fungsi mencatat bahwa file berhasil dibuka ke file log. Dengan demikian, fungsi ini memastikan hanya file virtual yang valid yang bisa diakses, dan hanya dalam mode baca, demi menjaga konsistensi dan integritas data virtual.
 
 ```
 if (strcmp(path + 1, FILENAME) != 0)
@@ -132,7 +132,7 @@ if (n < 0) {
     return -errno;
 }
 ```
-Bagian awal fungsi baymax_read dimulai dengan memverifikasi apakah path yang diminta sama dengan FILENAME (yaitu Baymax.jpeg). Jika tidak cocok, maka akan langsung mengembalikan error -ENOENT (file tidak ditemukan). Selanjutnya, fungsi mencoba membuka direktori BASE_DIR yang menyimpan potongan file (chunk). Jika direktori gagal dibuka, program mengembalikan error dari errno. Kemudian, fungsi menggunakan scandir untuk membaca semua isi direktori dan menyimpannya dalam array namelist, yang juga diurutkan secara alfabet. Jika terjadi kegagalan saat memindai direktori, maka juga akan dikembalikan error dan direktori akan ditutup.
+Bagian awal fungsi `baymax_read` dimulai dengan memverifikasi apakah path yang diminta sama dengan `FILENAME` (yaitu `Baymax.jpeg`). Jika tidak cocok, maka akan langsung mengembalikan error `-ENOENT` (file tidak ditemukan). Selanjutnya, fungsi mencoba membuka direktori `BASE_DIR` yang menyimpan potongan file (`chunk`). Jika direktori gagal dibuka, program mengembalikan error dari `errno`. Kemudian, fungsi menggunakan scandir untuk membaca semua isi direktori dan menyimpannya dalam array `namelist`, yang juga diurutkan secara alfabet. Jika terjadi kegagalan saat memindai direktori, maka juga akan dikembalikan error dan direktori akan ditutup.
 
 ```
 size_t bytes_read = 0;
@@ -184,7 +184,7 @@ for (int i = 0; i < n; i++) {
     current_offset += chunk_size;
 }
 ```
-Bagian utama dari fungsi ini melakukan iterasi terhadap semua file dalam namelist, dan memfilter hanya file-file yang merupakan potongan dari Baymax.jpeg (misalnya Baymax.jpeg.1, Baymax.jpeg.2, dst.). Setiap file yang valid dibuka, dan program menghitung ukurannya. Kemudian, berdasarkan nilai offset, fungsi menentukan apakah potongan tersebut perlu dibaca. Jika ya, ia menghitung berapa banyak byte yang perlu dibaca dari posisi tersebut, dan membaca ke dalam buffer buf. Proses ini akan terus berjalan sampai buffer penuh atau semua potongan selesai dibaca. Setelah selesai, semua memori yang dialokasikan untuk daftar file akan dibebaskan, dan direktori ditutup. Aktivitas pembacaan juga dicatat ke log dengan informasi ukuran, offset, dan jumlah byte yang dibaca.
+Bagian utama dari fungsi ini melakukan iterasi terhadap semua file dalam `namelist`, dan memfilter hanya file-file yang merupakan potongan dari `Baymax.jpeg` (misalnya `Baymax.jpeg.1`, `Baymax.jpeg.2`, dst.). Setiap file yang valid dibuka, dan program menghitung ukurannya. Kemudian, berdasarkan nilai `offset`, fungsi menentukan apakah potongan tersebut perlu dibaca. Jika ya, ia menghitung berapa banyak byte yang perlu dibaca dari posisi tersebut, dan membaca ke dalam buffer `buf`. Proses ini akan terus berjalan sampai buffer penuh atau semua potongan selesai dibaca. Setelah selesai, semua memori yang dialokasikan untuk daftar file akan dibebaskan, dan direktori ditutup. Aktivitas pembacaan juga dicatat ke log dengan informasi ukuran, offset, dan jumlah byte yang dibaca.
 
 ```
 int main(int argc, char *argv[]) {
@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
     return fuse_main(argc, argv, &baymax_oper, NULL);
 }
 ```
-Fungsi main adalah titik awal eksekusi program. Fungsi ini memanggil fuse_main, yang menjalankan sistem file FUSE berdasarkan operasi yang sudah didefinisikan dalam baymax_oper. Sebelum itu, fungsi memanggil umask(0) untuk menonaktifkan mask permission default dari sistem, agar file yang dibuat atau dimodifikasi oleh filesystem ini tidak dibatasi oleh umask. fuse_main akan memanggil fungsi-fungsi seperti getattr, read, open, atau readdir sesuai dengan interaksi user terhadap mount point (misalnya ls, cat, stat, dll). Dengan kata lain, main menginisialisasi dan mengaktifkan filesystem buatan ini.
+Fungsi `main` adalah titik awal eksekusi program. Fungsi ini memanggil `fuse_main`, yang menjalankan sistem file FUSE berdasarkan operasi yang sudah didefinisikan dalam `baymax_oper`. Sebelum itu, fungsi memanggil `umask(0)` untuk menonaktifkan mask permission default dari sistem, agar file yang dibuat atau dimodifikasi oleh filesystem ini tidak dibatasi oleh `umask`. `fuse_main` akan memanggil fungsi-fungsi seperti `getattr`, `read`, `open`, atau `readdir` sesuai dengan interaksi user terhadap mount point (misalnya `ls`, `cat`, `stat`, dll). Dengan kata lain, main menginisialisasi dan mengaktifkan filesystem buatan ini.
 
 
 # Soal 3
