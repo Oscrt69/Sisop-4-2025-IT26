@@ -197,7 +197,7 @@ Fungsi `main` adalah titik awal eksekusi program. Fungsi ini memanggil `fuse_mai
 
 # Soal 3
 
-File berbahaya akan di-reverse penamaannya saat di ls:
+File berbahaya akan di-reverse penamaannya saat di-ls:
 ```
 void reverse_name(char *filename) {
     int len = strlen(filename);
@@ -223,6 +223,24 @@ void rot13(char *str) {
 ```
 
 Cara melihat daftar container `docker ps -a` <br>
+
+<img src = "https://github.com/user-attachments/assets/00d41302-73c2-499f-ab1f-4f08c4f97175" width = "400"> <br>
+
+```
+CONTAINER ID   IMAGE          COMMAND                  CREATED        STATUS                      PORTS     NAMES
+029056e81d84   edbcc91638f1   "/bin/sh -c 'gcc -Wa…"   38 hours ago   Exited (1) 38 hours ago               silly_bell
+f1b8b13352ea   b2ab84c007fe   "/bin/sh -c 'apt-get…"   43 hours ago   Exited (100) 43 hours ago             sharp_villani
+0903817505b3   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               cool_banach
+2d406ca9d3a5   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               zealous_mayer
+13e4cfbe70c8   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               hopeful_knuth
+8577426d46b6   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               laughing_murdock
+2abe372ba1d1   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               stoic_khayyam
+e6091e65c2ac   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               nifty_darwin
+c4b1e2d8149f   e416b59e8cf1   "/bin/sh -c 'gcc -Wa…"   45 hours ago   Exited (1) 45 hours ago               hungry_pasteur
+cd59ac7c1a42   2ac67b9f8840   "/bin/sh -c 'gcc -o …"   45 hours ago   Exited (1) 45 hours ago               bold_lovelace
+```
+
+
 
 ### Cara compile soal ini.<br>
 Jalankan Docker Compose dengan `docker-compose build --no-cache` lalu `docker-compose up`<br>
