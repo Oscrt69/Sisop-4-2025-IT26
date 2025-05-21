@@ -6,6 +6,149 @@
 | Naufal Ardhana               | 5027241118 |
 
 # Soal 1
+Mendownload file zip, kemudian mengunzip dan menghapus file tersebut.
+```
+wget -O anomali.zip "https://drive.usercontent.google.com/u/0/uc?id=1hi_GDdP51Kn2JJMw02WmCOxuc3qrXzh5&export=download"
+unzip anomali.zip
+rm -rf anomali.zip
+```
+Mendownload file zip 
+![Screenshot 2025-05-21 183316](https://github.com/user-attachments/assets/c225cde5-a64c-4e2d-b8ed-7e31ca751935)
+
+Unzip file
+![Screenshot 2025-05-12 134710](https://github.com/user-attachments/assets/810b00f9-0f87-414c-a801-4d61ebc25662)
+
+Menghapus file zip 
+![Screenshot 2025-05-21 183506](https://github.com/user-attachments/assets/af5d4f48-01af-498a-b4f5-654a211da522)
+
+```
+void create_image_dir() {
+    struct stat st = {0};
+    if (stat(IMAGE_DIR, &st) == -1) {
+        mkdir(IMAGE_DIR, 0755);
+    }
+}
+```
+Fungsi ```create_image_dir()``` mengecek apakah direktori ```IMAGE_DIR``` sudah ada. Jika belum ada, maka akan dibuat dengan permission ```0755``` (read-write-execute untuk owner, read-execute untuk group dan others).
+```
+void log_conversion(const char *input_file, const char *output_file, const char *datetime) {
+    FILE *log = fopen(LOG_FILE, "a");
+    if (log == NULL) {
+        perror("Failed to open log file");
+        return;
+    }
+
+    fprintf(log, "[%s]: Successfully converted hexadecimal text %s to %s.\n", datetime, input_file, output_file);
+    fclose(log);
+}
+```
+Fungsi ```log_conversion()``` bertugas untuk membuka file log ```(LOG_FILE)``` dalam mode append ```("a")```. Menuliskan log bahwa file teks berhasil dikonversi ke file gambar. Format log: ```[tanggal dan waktu]: Successfully converted hexadecimal text input_file to output_file.```
+```
+int is_valid_hex(char c) {
+    return isxdigit(c); // cek apakah karakter valid hexadecimal
+}
+```
+Mengecek apakah karakter ```c``` termasuk dalam karakter heksadesimal ```(0-9, a-f, A-F)``` menggunakan fungsi bawaan ```isxdigit()```.
+```
+void convert_hex_to_image(const char *filename) {
+    char full_path[MAX_FILENAME_LEN];
+    snprintf(full_path, sizeof(full_path), "%s/%s", INPUT_DIR, filename);
+```
+Fungsi utama ```convert_hex_to_image``` mengonversi file ```.txt``` berisi data heksadesimal menjadi file gambar ```.png```, lalu mencatat proses konversinya ke ```file log```. Bagian ini menyusun path lengkap ke file input dengan menggabungkan direktori input ```(INPUT_DIR)``` dengan nama file ```filename``` menjadi ```full_path```.
+```
+FILE *infile = fopen(full_path, "r");
+if (!infile) {
+    perror("Failed to open input file");
+    return;
+}
+```
+Bagian ini bertugas membuka file teks untuk dibaca. Jika gagal dibuka (file tidak ada atau permission error), tampilkan pesan kesalahan dan keluar dari fungsi.
+```
+fseek(infile, 0, SEEK_END);
+long filesize = ftell(infile);
+rewind(infile);
+
+char *raw_data = malloc(filesize + 1);
+fread(raw_data, 1, filesize, infile);
+raw_data[filesize] = '\0';
+fclose(infile);
+
+```
+Bagian ini berfungsi membaca isi file ke memori dengan mengukur ukuran file, lalu kembali ke awal file. Isi file dibaca ke dalam ```raw_data``` sebagai string. Tambahan ```\0``` untuk mengakhiri string.
+```
+char *hex_data = malloc(filesize + 1);
+int j = 0;
+for (int i = 0; i < filesize; i++) {
+    if (is_valid_hex(raw_data[i])) {
+        hex_data[j++] = raw_data[i];
+    }
+}
+hex_data[j] = '\0';
+free(raw_data);
+```
+Bagian ini bertugas menyaring hanya karakter heksadesimal dengan memfilter hanya karakter valid hex ```(0-9, a-f, A-F)``` dan menyimpannya di ```hex_data```. ```is_valid_hex()``` adalah fungsi yang menggunakan ```isxdigit()```.
+```
+if (data_len < 2 || data_len % 2 != 0) {
+    fprintf(stderr, "%s: skipped, invalid hex length: %zu\n", filename, data_len);
+    free(hex_data);
+    return;
+}
+```
+Bagian ini memvalidasi panjang data hex, dimana Hex harus genap (2 digit = 1 byte), dan minimal 1 byte (2 digit). Jika tidak memenuhi syarat, file dilewati.
+```
+unsigned char *buffer = malloc(data_len / 2);
+for (size_t i = 0; i < data_len; i += 2) {
+    sscanf(hex_data + i, "%2hhx", &buffer[i / 2]);
+}
+```
+Bagian ini bertugas mengkonversi hex string ke array byte. Setiap dua karakter diubah menjadi 1 byte dan disimpan di ```buffer```.
+```
+time_t now = time(NULL);
+struct tm *t = localtime(&now);
+char datetime[64];
+strftime(datetime, sizeof(datetime), "%Y-%m-%d_%H:%M:%S", t);
+
+strncpy(base_name, filename, MAX_FILENAME_LEN);
+char *dot = strstr(base_name, ".txt");
+if (dot) *dot = '\0';
+
+snprintf(output_filename, sizeof(output_filename), "%s_image_%s.png", base_name, datetime);
+snprintf(output_path, sizeof(output_path), "%s/%s", IMAGE_DIR, output_filename);
+```
+Bagian ini membuat nama file output berdasarkan waktu dengan mendapatkan timestamp untuk digunakan sebagai bagian dari nama file. Kemudian menghapus ```.txt``` dari nama file untuk membuat nama dasar file output. Serta membuat nama file PNG dengan format: ```namafile_image_tanggal.png```, lalu digabungkan dengan direktori output.
+```
+FILE *outfile = fopen(output_path, "wb");
+if (!outfile) {
+    perror("Failed to open output image file");
+    free(hex_data);
+    free(buffer);
+    return;
+}
+fwrite(buffer, 1, data_len / 2, outfile);
+fclose(outfile);
+```
+Bagian ini berfungsi menulis file output dengan membuka file PNG untuk ditulis dalam mode biner (```wb```), kemudian menulis isi ```buffer``` ke file dan terakhir menutup file.
+```
+char log_datetime[32];
+strftime(log_datetime, sizeof(log_datetime), "%Y-%m-%d][%H:%M:%S", t);
+log_conversion(filename, output_filename, log_datetime);
+```
+Bagian ini akan menuliskan log konversi dengan Membuat format timestamp log seperti ```[2025-05-21][14:30:00]```. Memanggil fungsi ```log_conversion()``` untuk mencatat file yang dikonversi.
+```
+free(hex_data);
+free(buffer);
+```
+Bagian ini akan membebaskan alokasi memori setelah selesai.
+
+Menjalankan file hexed.c
+![Screenshot 2025-05-21 183758](https://github.com/user-attachments/assets/e43ce5e1-171b-4318-8f2b-4a98bc4aa9aa)
+
+Output conversion_log
+![Screenshot 2025-05-21 183626](https://github.com/user-attachments/assets/0bca135b-7eda-4d23-9634-2a80dc4eb917)
+
+Struktur direktori akhir 
+![Screenshot 2025-05-21 183843](https://github.com/user-attachments/assets/6f2e40f4-89a3-414d-81dc-3204b767d533)
+
 # Soal 2
 ```
 static void log_activity(const char *format, ...) {
