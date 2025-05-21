@@ -231,28 +231,26 @@ void rot13(char *str) {
 
 Cara melihat daftar container `docker ps -a` <br>
 
-<img src = "https://github.com/user-attachments/assets/00d41302-73c2-499f-ab1f-4f08c4f97175" width = "400"> <br>
-
-```
-CONTAINER ID   IMAGE          COMMAND                  CREATED        STATUS                      PORTS     NAMES
-029056e81d84   edbcc91638f1   "/bin/sh -c 'gcc -Wa…"   38 hours ago   Exited (1) 38 hours ago               silly_bell
-f1b8b13352ea   b2ab84c007fe   "/bin/sh -c 'apt-get…"   43 hours ago   Exited (100) 43 hours ago             sharp_villani
-0903817505b3   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               cool_banach
-2d406ca9d3a5   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               zealous_mayer
-13e4cfbe70c8   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               hopeful_knuth
-8577426d46b6   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               laughing_murdock
-2abe372ba1d1   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               stoic_khayyam
-e6091e65c2ac   ecc2699daa1a   "/bin/sh -c 'gcc -Wa…"   44 hours ago   Exited (1) 44 hours ago               nifty_darwin
-c4b1e2d8149f   e416b59e8cf1   "/bin/sh -c 'gcc -Wa…"   45 hours ago   Exited (1) 45 hours ago               hungry_pasteur
-cd59ac7c1a42   2ac67b9f8840   "/bin/sh -c 'gcc -o …"   45 hours ago   Exited (1) 45 hours ago               bold_lovelace
-```
+<img src = "https://github.com/user-attachments/assets/00d41302-73c2-499f-ab1f-4f08c4f97175" width = "500"> <br>
 
 
+Nama-nama seperti:
+
+> silly_bell
+
+> sharp_villani
+
+> zealous_mayer
+
+dan lain-lain adalah nama default otomatis yang diberikan oleh Docker.
 
 ### Cara compile soal ini.<br>
-Jalankan Docker Compose dengan `docker-compose build --no-cache` lalu `docker-compose up`<br>
+Jalankan Container dengan `docker-compose up -d`, namun jika setelah mengubah apapun di Dockerfile atau antink.c, gunakan `docker-compose build --no-cache` terlebih dahulu untuk build ulang<br>
+
 Buka terminal baru lalu jalankan `docker exec -it antink-server ls /antink_mount` untuk melihat semua file baik file berbahaya yang di-reverse maupun file biasa <br>
+
 `docker exec antink-server cat /antink_mount/[NAMA FILE]` dengan command ini, file teks normal akan di enkripsi menggunakan ROT13 saat dibaca, sedangkan file teks berbahaya tidak di enkripsi.  <br>
-Hapus container dengan `docker-compose down` <br>
+
+Hapus container dengan `docker-compose down`, maka list container kembali seperti default. <br>
 
 # Soal 4
