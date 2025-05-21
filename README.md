@@ -149,6 +149,7 @@ Output conversion_log
 ![Screenshot 2025-05-21 183626](https://github.com/user-attachments/assets/0bca135b-7eda-4d23-9634-2a80dc4eb917)
 
 Struktur direktori akhir 
+
 ![Screenshot 2025-05-21 183843](https://github.com/user-attachments/assets/6f2e40f4-89a3-414d-81dc-3204b767d533)
 
 # Soal 2
