@@ -152,6 +152,89 @@ Struktur direktori akhir
 
 ![Screenshot 2025-05-21 183843](https://github.com/user-attachments/assets/6f2e40f4-89a3-414d-81dc-3204b767d533)
 
+Revisi
+```
+#define FUSE_USE_VERSION 31
+#include <fuse3/fuse.h>
+```
+Mendefinisikan versi API FUSE yang akan digunakan, dalam hal ini versi 3.1 (31) dan menyertakan header utama dari FUSE versi 3. Digunakan untuk: mengakses fungsi utama FUSE seperti ```fuse_main()```, struktur ```fuse_operations```, ```fuse_file_info```, dll. Konstanta dan tipe data penting dalam sistem file virtual.
+
+```
+static int fs_getattr(const char *path, struct stat *st, struct fuse_file_info *fi) {
+    char full_path[MAX_PATH];
+    snprintf(full_path, sizeof(full_path), "%s%s", SOURCE_DIR, path);
+
+    if (lstat(full_path, st) == -1) return -errno;
+    return 0;
+}
+```
+Fungsi ```fs_getattr``` Mengembalikan atribut file (mirip perintah ```ls -l```). ```path``` merupakan path relatif yang diberikan FUSE. Menggabungkan ```SOURCE_DIR```(misalnya ```./data```) dan ```path``` untuk membentuk path absolut. ```lstat()``` digunakan untuk mengambil metadata file (ukuran, waktu akses, permission, dll). Jika gagal, kembalikan kode error dari sistem (```-errno```). 
+```
+static int fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+                      off_t offset, struct fuse_file_info *fi,
+                      enum fuse_readdir_flags flags) {
+    char dir_path[MAX_PATH];
+    snprintf(dir_path, sizeof(dir_path), "%s%s", SOURCE_DIR, path);
+
+    DIR *dp = opendir(dir_path);
+    if (!dp) return -errno;
+
+    filler(buf, ".", NULL, 0, 0);
+    filler(buf, "..", NULL, 0, 0);
+
+    struct dirent *de;
+    while ((de = readdir(dp)) != NULL) {
+        filler(buf, de->d_name, NULL, 0, 0);
+
+        if (strstr(path, "/image") == NULL && strstr(de->d_name, ".txt")) {
+            convert_hex_to_image_if_needed(de->d_name);
+        }
+    }
+
+    closedir(dp);
+    return 0;
+}
+```
+Fungsi ```fs_readdir``` bertugas mengembalikan daftar isi direktori (mirip ```ls```). Pertama menyusun path absolut direktori (```dir_path```). Kemudian, membuka direktori menggunakan ```opendir()```. Setelahnya menambahkan entri khusus ```"."``` dan ```".."``` menggunakan ```filler()``` (wajib dalam FUSE). Selanjutnya melakukan iterasi semua file dalam direktori dengan menambahkan nama ```file/direktori```ke buffer ```buf``` melalui ```filler()```. Jika file ```.txt``` ditemukan dan direktori bukan ```/image```, maka: ```convert_hex_to_image_if_needed(de->d_name);```, file tersebut akan diproses (jika perlu) menjadi gambar PNG.
+
+```
+static int fs_open(const char *path, struct fuse_file_info *fi) {
+    char full_path[MAX_PATH];
+    snprintf(full_path, sizeof(full_path), "%s%s", SOURCE_DIR, path);
+
+    FILE *file = fopen(full_path, "r");
+    if (!file) return -errno;
+    fclose(file);
+
+    return 0;
+}
+```
+Fungsi ```fs_open``` berfungsi untuk membuka file. Pertama menyusun path absolut. Kemudian, membuka file dengan ```fopen()```. Jika gagal, kembalikan ```-errno```. Jika berhasil, langsung ditutup (tidak disimpan), karena FUSE hanya butuh validasi bahwa file bisa dibuka.
+```
+static int fs_read(const char *path, char *buf, size_t size, off_t offset,
+                   struct fuse_file_info *fi) {
+    char full_path[MAX_PATH];
+    snprintf(full_path, sizeof(full_path), "%s%s", SOURCE_DIR, path);
+
+    FILE *file = fopen(full_path, "r");
+    if (!file) return -errno;
+
+    fseek(file, offset, SEEK_SET);
+    size_t res = fread(buf, 1, size, file);
+    fclose(file);
+
+    return res;
+}
+```
+Fungsi ```fs_read``` berfungsi membaca isi file dari offset tertentu hingga size byte. Pertama, menyusun path absolut dan membuka file untuk dibaca. Kemudian lompat ke posisi offset menggunakan ```fseek()```. Selanjutnya, membaca ```size``` byte ke buffer ```buf``` dan menutup file, serta mengembalikan jumlah byte yang berhasil dibaca.
+```
+int main(int argc, char *argv[]) {
+    ensure_image_dir();
+    return fuse_main(argc, argv, &fs_oper, NULL);
+}
+```
+Fungsi dalam ```main``` tersebut meruapakan fungsi utama untuk menjalanlan program FUSE. ```ensure_image_dir();``` memastikan direktori ```image/``` sudah ada sebelum filesystem FUSE berjalan dan biasanya dipakai untuk menyimpan hasil konversi file ```.txt``` ke ```.png```. ```fuse_main(argc, argv, &fs_oper, NULL);``` adalah fungsi utama FUSE yang menjalankan loop FUSE, meng-handle mounting filesystem, dan memproses semua request filesystem (dari kernel). Parameter yang digunakan ```argc, argv```: argumen dari command line (misalnya: ```./mount_fs ./mnt```). ```&fs_oper``` pointer ke struktur operasi FUSE (handler yang didaftarkan). ```NULL```: pointer opsional untuk data khusus pengguna (tidak dipakai di sini). Kode ini merupakan kerangka utama program FUSE yang membuat filesystem read-only, memantulkan isi ```SOURCE_DIR```, dan secara otomatis mengonversi file ```.txt``` yang berisi heksadesimal menjadi file gambar ```.png``` di direktori ```image/```. 
+
 # Soal 2
 ```
 static void log_activity(const char *format, ...) {
