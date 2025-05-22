@@ -408,9 +408,11 @@ Folder antink-system berisi:
 
 > Dockerfile, docker-compose.yml, antink.c → file program utama dan konfigurasi Docker
 
-Perintah ls dilakukan dari host lokal yaitu antink_mount di luar Docker, hasilnya tidak muncul file apa-apa, meskipun di dalam container ada isi karena `antink_mount` adalah FUSE mount point, dan sistem FUSE sedang berjalan di dalam container Docker, bukan di sistem lokal.
+Perintah ls dilakukan pada antink_mount diluar Docker, akan tetapi hasilnya tidak muncul file apa-apa, meskipun pada container ada isi karena `antink_mount` adalah FUSE mount point, dan sistem FUSE sedang berjalan didalam container Docker, bukan di local system.
 
-`docker exec antink-server cat /antink_mount/[NAMA FILE]` dengan command ini, file teks normal akan di enkripsi menggunakan ROT13 saat dibaca, sedangkan file teks berbahaya tidak di enkripsi.  <br>
+< img src = "https://github.com/user-attachments/assets/46074ea4-cca9-43b5-b557-d51f8aac10bc" width = "500"> <br>
+
+`docker exec antink-server cat /antink_mount/[NAMA FILE]` dengan perintah ini, file teks normal akan di enkripsi menggunakan ROT13 saat dibaca, sedangkan file teks berbahaya tidak di enkripsi.  <br>
 
 Hapus container dengan `docker-compose down`, maka list container kembali seperti default. <br>
 
