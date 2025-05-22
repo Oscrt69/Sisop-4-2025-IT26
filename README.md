@@ -412,8 +412,14 @@ Perintah ls dilakukan pada antink_mount diluar Docker, akan tetapi hasilnya tida
 
 <img src = "https://github.com/user-attachments/assets/46074ea4-cca9-43b5-b557-d51f8aac10bc" width = "500"> <br>
 
-`docker exec antink-server cat /antink_mount/[NAMA FILE]` dengan perintah ini, file teks normal akan di enkripsi menggunakan ROT13 saat dibaca, sedangkan file teks berbahaya tidak di enkripsi.  <br>
+`docker exec antink-server cat /antink_mount/[NAMA FILE]` dengan perintah ini, isi file teks normal akan dienkripsi menggunakan ROT13 saat dibaca, sedangkan file teks berbahaya isinya tidak dienkripsi. Semua aktivitas akan disimpan ke file `it24log` <br>
 
-Hapus container dengan `docker-compose down`, maka list container kembali seperti default. <br>
+<img src = "https://github.com/user-attachments/assets/bbb22a7c-9087-402d-b328-b1ea7e1297ee" width = "500"><br>
+<img src = "https://github.com/user-attachments/assets/96fa1857-1115-455b-91eb-8ff144e4c513" width = "500"> <br>
+
+Hapus container dengan `docker-compose down`, maka list container kembali ke default. <br>
+
+<img src = "https://github.com/user-attachments/assets/f477cea6-0a3f-4480-9426-e82125190e26" width = "600"> <br>
+
 
 # Soal 4
