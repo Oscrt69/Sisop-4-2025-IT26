@@ -983,6 +983,15 @@ Fungsi ketiga, `fs_utimens`, berfungsi memperbarui waktu akses dan modifikasi fi
 ### Screenshot isi blackrose chiho
 ![image](https://github.com/user-attachments/assets/cdc537ba-f7e7-424b-a46b-f798974e8e4d)
 ![image](https://github.com/user-attachments/assets/e75e161a-170c-4cca-b4ab-16582033b5d6)
+### Screenshot isi heaven chiho
+![image](https://github.com/user-attachments/assets/cd82861c-5cd0-4d11-8f7e-1af43fefa22a)
+### Output fuse_dir yang ditambahkan beberapa file
+![image](https://github.com/user-attachments/assets/aac6d16a-73d9-46b7-bf4b-90b21498c5ed)
+### Output chiho hasil mount dari fuse_dir
+![image](https://github.com/user-attachments/assets/51e8c669-48d4-4c11-8c9c-c8f9c047e1b1)
+
+
+
 
 
 
