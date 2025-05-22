@@ -412,7 +412,7 @@ Perintah ls dilakukan pada antink_mount diluar Docker, akan tetapi hasilnya tida
 
 <img src = "https://github.com/user-attachments/assets/46074ea4-cca9-43b5-b557-d51f8aac10bc" width = "500"> <br>
 
-`docker exec antink-server cat /antink_mount/[NAMA FILE]` dengan perintah ini, isi file teks normal akan dienkripsi menggunakan ROT13 saat dibaca, sedangkan file teks berbahaya isinya tidak dienkripsi. Semua aktivitas akan disimpan ke file `it24log` <br>
+`docker exec antink-server cat /antink_mount/[NAMA FILE]` dengan perintah ini, isi file teks normal akan dienkripsi menggunakan ROT13 saat dibaca, sedangkan file teks berbahaya isinya tidak dienkripsi. Semua aktivitas akan disimpan ke file `it24log`  <br>
 
 <img src = "https://github.com/user-attachments/assets/bbb22a7c-9087-402d-b328-b1ea7e1297ee" width = "500"><br>
 <img src = "https://github.com/user-attachments/assets/96fa1857-1115-455b-91eb-8ff144e4c513" width = "500"> <br>
