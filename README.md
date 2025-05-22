@@ -423,3 +423,485 @@ Hapus container dengan `docker-compose down`, maka list container kembali ke def
 
 
 # Soal 4
+```
+void log_action(const char *action, const char *path) {
+    FILE *log = fopen(LOGFILE, "a");
+    if (!log) return;
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+    fprintf(log, "%04d-%02d-%02d %02d:%02d:%02d [%s] %s\n",
+            tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
+            tm->tm_hour, tm->tm_min, tm->tm_sec, action, path);
+    fclose(log);
+}
+```
+Fungsi log_action ini dibuat untuk mencatat aktivitas yang terjadi pada file, misalnya saat file dibuka, dibaca, atau ditulis. Setiap kali fungsi ini dipanggil, dia akan menulis ke file log (disebut LOGFILE) informasi berupa waktu kejadian, jenis aksi (seperti "READ" atau "WRITE"), dan path file yang sedang diakses. Waktu ditulis dalam format tanggal dan jam lengkap, agar mudah dilacak. Jadi, log ini berguna kalau suatu saat butuh melihat apa saja yang terjadi dalam sistem, terutama kalau ada masalah atau mau melakukan pengecekan aktivitas.
+
+```
+int read_starter(const char *fpath, char *buf, size_t size, off_t offset) {
+    int fd = open(fpath, O_RDONLY);
+    if (fd == -1) return -errno;
+    int r = pread(fd, buf, size, offset);
+    close(fd);
+    return r;
+}
+```
+Fungsi read_starter digunakan untuk membaca isi file dari lokasi path tertentu (fpath). Ia akan membuka file tersebut hanya untuk dibaca (O_RDONLY). Kalau gagal dibuka, fungsi akan mengembalikan kode error. Kalau berhasil, fungsi akan membaca sejumlah data sebanyak size byte mulai dari posisi offset, dan hasilnya disimpan ke dalam buffer buf. Setelah selesai membaca, file langsung ditutup. Jadi fungsi ini praktis buat ambil sebagian isi file tanpa harus membuka semuanya dari awal.
+
+```
+int write_starter(const char *fpath, const char *buf, size_t size, off_t offset) {
+    int fd = open(fpath, O_WRONLY | O_CREAT, 0644);
+    if (fd == -1) return -errno;
+    int r = pwrite(fd, buf, size, offset);
+    close(fd);
+    return r;
+}
+```
+Fungsi write_starter bertugas menulis data ke file pada path tertentu (fpath). File akan dibuka dalam mode tulis, dan kalau belum ada, akan dibuat otomatis dengan permission 0644. Jika file gagal dibuka, fungsi langsung mengembalikan error. Kalau berhasil, data dari buffer buf akan ditulis sebanyak size byte ke posisi offset dalam file. Setelah proses selesai, file ditutup dan fungsi mengembalikan hasil jumlah byte yang berhasil ditulis. Ini berguna saat ingin menyimpan sebagian data ke file tanpa menimpa keseluruhan isinya.
+
+```
+void shift_bytes(const char *src, char *dst, size_t len) {
+    for (size_t i = 0; i < len; i++) dst[i] = src[i] + ((i + 1) % 256);
+}
+void unshift_bytes(const char *src, char *dst, size_t len) {
+    for (size_t i = 0; i < len; i++) dst[i] = src[i] - ((i + 1) % 256);
+}
+int read_metro(const char *fpath, char *buf, size_t size, off_t offset) {
+    int fd = open(fpath, O_RDONLY);
+    if (fd == -1) return -errno;
+    char *tmp = malloc(size);
+    int r = pread(fd, tmp, size, offset);
+    shift_bytes(tmp, buf, r);
+    free(tmp); close(fd);
+    return r;
+}
+```
+Fungsi-fungsi ini digunakan untuk membaca file dari Metro Area dengan mekanisme encoding khusus. Pertama, shift_bytes dan unshift_bytes melakukan manipulasi byte: setiap byte diubah dengan menambahkan atau mengurangi nilai berdasarkan posisinya agar data tidak disimpan secara polos.
+
+Fungsi read_metro membuka file dan membaca datanya ke buffer sementara (tmp). Setelah berhasil dibaca, datanya di-encode menggunakan shift_bytes, lalu hasilnya disalin ke buf. Ini membuat file tetap terbaca dengan benar oleh sistem, tapi sebenarnya disimpan dalam format yang telah dienkode. Setelah selesai, buffer sementara dibebaskan dan file ditutup.
+
+```
+void rot13(const char *src, char *dst, size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        char c = src[i];
+        if ('a' <= c && c <= 'z') dst[i] = 'a' + (c - 'a' + 13) % 26;
+        else if ('A' <= c && c <= 'Z') dst[i] = 'A' + (c - 'A' + 13) % 26;
+        else dst[i] = c;
+    }
+}
+int read_dragon(const char *fpath, char *buf, size_t size, off_t offset) {
+    int fd = open(fpath, O_RDONLY);
+    if (fd == -1) return -errno;
+    char *tmp = malloc(size);
+    int r = pread(fd, tmp, size, offset);
+    rot13(tmp, buf, r);
+    free(tmp); close(fd);
+    return r;
+}
+int write_dragon(const char *fpath, const char *buf, size_t size, off_t offset) {
+    char *tmp = malloc(size);
+    rot13(buf, tmp, size);
+    int fd = open(fpath, O_WRONLY | O_CREAT, 0644);
+    if (fd == -1) { free(tmp); return -errno; }
+    int r = pwrite(fd, tmp, size, offset);
+    free(tmp); close(fd);
+    return r;
+}
+
+// ======================== BLACKROSE =========================
+int read_blackrose(const char *fpath, char *buf, size_t size, off_t offset) {
+    int fd = open(fpath, O_RDONLY);
+    if (fd == -1) return -errno;
+    int r = pread(fd, buf, size, offset);
+    close(fd);
+    return r;
+}
+int write_blackrose(const char *fpath, const char *buf, size_t size, off_t offset) {
+    int fd = open(fpath, O_WRONLY | O_CREAT, 0644);
+    if (fd == -1) return -errno;
+    int r = pwrite(fd, buf, size, offset);
+    close(fd);
+    return r;
+}
+```
+Fungsi pada Dragon Area menggunakan algoritma ROT13, yang diterapkan melalui fungsi rot13. Saat membaca file `read_dragon`, isi file dibaca terlebih dahulu ke dalam buffer sementara, kemudian diproses oleh rot13 sebelum dimasukkan ke buffer tujuan. Saat menulis `write_dragon`, data yang akan ditulis dienkripsi terlebih dahulu menggunakan `rot13`, lalu disimpan ke file.
+
+Sementara itu, fungsi di Blackrose Area `read_blackrose` dan `write_blackrose` menggunakan operasi baca dan tulis standar `pread`, `pwrite` tanpa transformasi data.
+
+```
+int aes_decrypt_file(const char *path, char *buf, size_t maxlen) {
+    FILE *f = fopen(path, "rb"); if (!f) return -errno;
+    unsigned char iv[16]; fread(iv, 1, 16, f);
+    fseek(f, 0, SEEK_END); long clen = ftell(f) - 16;
+    fseek(f, 16, SEEK_SET);
+    unsigned char *cipher = malloc(clen);
+    fread(cipher, 1, clen, f); fclose(f);
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new(); int len, flen;
+    EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, (unsigned char*)KEY, iv);
+    EVP_DecryptUpdate(ctx, (unsigned char*)buf, &len, cipher, clen);
+    EVP_DecryptFinal_ex(ctx, (unsigned char*)buf + len, &flen);
+    EVP_CIPHER_CTX_free(ctx); free(cipher);
+    return len + flen;
+}
+int aes_encrypt_file(const char *path, const char *buf, size_t len) {
+    FILE *f = fopen(path, "wb"); if (!f) return -errno;
+    unsigned char iv[16]; for (int i = 0; i < 16; i++) iv[i] = rand() % 256;
+    fwrite(iv, 1, 16, f);
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    unsigned char *cipher = malloc(len + 32);
+    int outlen, tmplen;
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, (unsigned char*)KEY, iv);
+    EVP_EncryptUpdate(ctx, cipher, &outlen, (const unsigned char*)buf, len);
+    EVP_EncryptFinal_ex(ctx, cipher + outlen, &tmplen);
+    fwrite(cipher, 1, outlen + tmplen, f);
+    fclose(f); EVP_CIPHER_CTX_free(ctx); free(cipher);
+    return outlen + tmplen;
+}
+int read_heaven(const char *fpath, char *buf, size_t size) {
+    return aes_decrypt_file(fpath, buf, size);
+}
+int write_heaven(const char *fpath, const char *buf, size_t size) {
+    return aes_encrypt_file(fpath, buf, size);
+}
+```
+Kode ini pakai library OpenSSL buat enkripsi dan dekripsi file pakai AES-256-CBC. Waktu nge-enkripsi, pertama bikin IV (initialization vector) acak 16 byte terus ditulis ke file dulu. Setelah itu, data dienkripsi dengan fungsi dari OpenSSL dan hasilnya ditulis setelah IV. Buat dekripsi, file dibuka terus IV-nya dibaca 16 byte pertama, sisanya data terenkripsi. Data itu didekripsi pakai fungsi OpenSSL dan disimpen ke buffer. Fungsi `read_heaven` sama `write_heaven` cuma manggil fungsi dekripsi dan enkripsi itu biar gampang dipakai.
+
+```
+int read_youth(const char *fpath, char *buf, size_t size, off_t offset) {
+    gzFile gz = gzopen(fpath, "rb");
+    if (!gz) return -errno;
+    if (gzseek(gz, offset, SEEK_SET) == -1) {
+        gzclose(gz);
+        return -EIO;
+    }
+    int r = gzread(gz, buf, size);
+    gzclose(gz);
+    return r;
+}
+int write_youth(const char *fpath, const char *buf, size_t size) {
+    size_t out_len = size + size / 10 + 12;  // buffer kompresi lebih besar dari input
+    char *out_buf = malloc(out_len);
+    if (!out_buf) return -ENOMEM;
+
+    int ret = compress_content(buf, size, out_buf, &out_len);
+    if (ret != 0) {
+        free(out_buf);
+        return ret;
+    }
+
+    FILE *fp = fopen(fpath, "wb");
+    if (!fp) {
+        free(out_buf);
+        return -errno;
+    }
+    fwrite(out_buf, 1, out_len, fp);
+    fclose(fp);
+    free(out_buf);
+    return size;
+}
+```
+Kode read_youth dan `write_youth` ini berfungsi untuk membaca dan menulis file yang menggunakan kompresi `gzip`. Pada fungsi `read_youth`, file dibuka dengan `gzopen` untuk membaca dalam mode `gzip`, lalu posisi baca digeser sesuai offset yang diminta menggunakan `gzseek`. Data kemudian dibaca ke buffer menggunakan `gzread` dan file ditutup dengan gzclose.
+
+```
+int youth_compress(const char *src, size_t src_len, char *dest, size_t *dest_len) {
+    z_stream zs;
+    int status;
+
+    // Initialize stream
+    zs.zalloc = NULL;
+    zs.zfree = NULL;
+    zs.opaque = NULL;
+
+    status = deflateInit2(&zs, 5, Z_DEFLATED, 31, 8, Z_DEFAULT_STRATEGY);  // level 5, 31 = 15+16 gzip wrapper
+    if (status != Z_OK) return -EIO;
+
+    zs.next_in = (Bytef *)src;
+    zs.avail_in = (uInt)src_len;
+    zs.next_out = (Bytef *)dest;
+    zs.avail_out = (uInt)*dest_len;
+
+    while (zs.avail_in > 0) {
+        status = deflate(&zs, Z_NO_FLUSH);
+        if (status == Z_STREAM_ERROR) {
+            deflateEnd(&zs);
+            return -EIO;
+        }
+    }
+
+    // Finalize compression
+    for (;;) {
+        status = deflate(&zs, Z_FINISH);
+        if (status == Z_STREAM_END) break;
+        if (status != Z_OK) {
+            deflateEnd(&zs);
+            return -EIO;
+        }
+    }
+
+    *dest_len = zs.total_out;
+    deflateEnd(&zs);
+
+    return 0;
+}
+int youth_decompress(const char *src, size_t src_len, char *dest, size_t *dest_len) {
+    z_stream zs;
+    int status;
+
+    zs.zalloc = NULL;
+    zs.zfree = NULL;
+    zs.opaque = NULL;
+
+    status = inflateInit2(&zs, 47);  // 47 = 32 + 15, auto detect gzip/zlib with windowBits
+    if (status != Z_OK) return -EIO;
+
+    zs.next_in = (Bytef *)src;
+    zs.avail_in = (uInt)src_len;
+    zs.next_out = (Bytef *)dest;
+    zs.avail_out = (uInt)*dest_len;
+
+    while (1) {
+        status = inflate(&zs, Z_NO_FLUSH);
+
+        if (status == Z_STREAM_END) break;
+        if (status != Z_OK) {
+            inflateEnd(&zs);
+            return -EIO;
+        }
+        if (zs.avail_out == 0) {
+            // Output buffer penuh, stop to prevent overflow
+            break;
+        }
+    }
+
+    *dest_len = zs.total_out;
+    inflateEnd(&zs);
+
+    return 0;
+}
+```
+Kode ini berisi dua fungsi utama untuk kompresi dan dekompresi data menggunakan library `zlib` dengan format `gzip`. Fungsi `youth_compress` menginisialisasi struktur `z_stream` lalu menjalankan proses kompresi data dari buffer sumber `src` ke buffer tujuan `dest`. Proses kompresi dilakukan dalam loop sampai seluruh data masuk telah diproses, kemudian diakhiri dengan `deflate` bertipe `Z_FINISH`. Ukuran hasil kompresi disimpan dalam `*dest_len`.
+
+Fungsi youth_decompress juga menginisialisasi `z_stream`, tapi untuk melakukan dekompresi data dari buffer `src` ke buffer `dest`. Fungsi ini memakai `inflateInit2` dengan parameter 47 agar dapat mendeteksi format `gzip` atau `zlib` secara otomatis. Data didekompresi dalam loop sampai akhir stream atau buffer output penuh. 
+
+Fungsi diatas merupakan bentuk revisi dari kode sebelumnya sehingga sekarang penambahan fungsi compress dan decompress berhasil. Hasil sebelumnya dimana bentuk file zip tidak bisa di unzip sekarang sudah bisa.
+
+```
+#include <sys/time.h>
+
+// ======================== HELPER: Get Real Path =========================
+// ======================== HELPER: Get Real Path (dengan validasi) =========================
+int is_valid_chiho(const char *chiho) {
+    const char *valid[] = {"starter", "metro", "dragon", "blackrose", "heaven", "youth", "7sref"};
+    int n = sizeof(valid) / sizeof(valid[0]);
+    for (int i = 0; i < n; i++) {
+        if (strcmp(chiho, valid[i]) == 0) return 1;
+    }
+    return 0;
+}
+
+void get_real_path(const char *path, char *resolved) {
+    char chiho[32];
+    if (sscanf(path, "/%31[^/]/", chiho) == 1 && !is_valid_chiho(chiho)) {
+        strcpy(resolved, "");  // invalid chiho, kosongkan path agar error
+        return;
+    }
+
+    if (strncmp(path, "/starter/", 9) == 0)
+        snprintf(resolved, PATH_MAX, "%s/starter%s.mai", BASEDIR, path + 8);
+    else if (strncmp(path, "/metro/", 7) == 0)
+        snprintf(resolved, PATH_MAX, "%s/metro%s", BASEDIR, path + 6);
+    else if (strncmp(path, "/dragon/", 8) == 0)
+        snprintf(resolved, PATH_MAX, "%s/dragon%s", BASEDIR, path + 7);
+    else if (strncmp(path, "/blackrose/", 11) == 0)
+        snprintf(resolved, PATH_MAX, "%s/blackrose%s", BASEDIR, path + 10);
+    else if (strncmp(path, "/heaven/", 8) == 0)
+        snprintf(resolved, PATH_MAX, "%s/heaven%s.enc", BASEDIR, path + 7);
+    else if (strncmp(path, "/youth/", 7) == 0)
+        snprintf(resolved, PATH_MAX, "%s/youth%s.gz", BASEDIR, path + 6);
+    else if (strncmp(path, "/7sref/", 7) == 0) {
+        char area[32], file[256];
+        sscanf(path + 7, "%31[^_]_%255s", area, file);
+        if (!is_valid_chiho(area)) {
+            strcpy(resolved, "");  // invalid chiho area
+            return;
+        }
+        snprintf(resolved, PATH_MAX, "%s/%s/%s", BASEDIR, area, file);
+    } else {
+        snprintf(resolved, PATH_MAX, "%s%s", BASEDIR, path);
+    }
+}
+```
+Kode ini terdiri dari dua bagian utama. Pertama, fungsi `is_valid_chiho` yang berfungsi sebagai pengecek validitas direktori utama `chiho` dengan membandingkan input terhadap daftar direktori yang diizinkan: "starter", "metro", "dragon", "blackrose", "heaven", "youth", dan "7sref". Fungsi ini mengembalikan nilai boolean (1 jika valid, 0 jika tidak).
+
+Kedua, fungsi get_real_path yang bertugas mengonversi path virtual menjadi path fisik yang sesuai di sistem file. Fungsi ini memulai dengan mengekstrak nama chiho dari path menggunakan sscanf dan memvalidasinya melalui `is_valid_chiho`. Jika chiho tidak valid, fungsi langsung mengosongkan string hasil agar menandakan path tidak sah.
+```
+#include <sys/time.h>
+
+// ======================== HELPER: Get Real Path =========================
+// ======================== HELPER: Get Real Path (dengan validasi) =========================
+int is_valid_chiho(const char *chiho) {
+    const char *valid[] = {"starter", "metro", "dragon", "blackrose", "heaven", "youth", "7sref"};
+    int n = sizeof(valid) / sizeof(valid[0]);
+    for (int i = 0; i < n; i++) {
+        if (strcmp(chiho, valid[i]) == 0) return 1;
+    }
+    return 0;
+}
+
+void get_real_path(const char *path, char *resolved) {
+    char chiho[32];
+    if (sscanf(path, "/%31[^/]/", chiho) == 1 && !is_valid_chiho(chiho)) {
+        strcpy(resolved, "");  // invalid chiho, kosongkan path agar error
+        return;
+    }
+    if (strncmp(path, "/starter/", 9) == 0)
+        snprintf(resolved, PATH_MAX, "%s/starter%s.mai", BASEDIR, path + 8);
+    else if (strncmp(path, "/metro/", 7) == 0)
+        snprintf(resolved, PATH_MAX, "%s/metro%s", BASEDIR, path + 6);
+    else if (strncmp(path, "/dragon/", 8) == 0)
+        snprintf(resolved, PATH_MAX, "%s/dragon%s", BASEDIR, path + 7);
+    else if (strncmp(path, "/blackrose/", 11) == 0)
+        snprintf(resolved, PATH_MAX, "%s/blackrose%s", BASEDIR, path + 10);
+    else if (strncmp(path, "/heaven/", 8) == 0)
+        snprintf(resolved, PATH_MAX, "%s/heaven%s.enc", BASEDIR, path + 7);
+    else if (strncmp(path, "/youth/", 7) == 0)
+        snprintf(resolved, PATH_MAX, "%s/youth%s.gz", BASEDIR, path + 6);
+    else if (strncmp(path, "/7sref/", 7) == 0) {
+        char area[32], file[256];
+        sscanf(path + 7, "%31[^_]_%255s", area, file);
+        if (!is_valid_chiho(area)) {
+            strcpy(resolved, "");  // invalid chiho area
+            return;
+        }
+        snprintf(resolved, PATH_MAX, "%s/%s/%s", BASEDIR, area, file);
+    } else {
+        snprintf(resolved, PATH_MAX, "%s%s", BASEDIR, path);
+    }
+}
+```
+Kode ini terdiri dari dua bagian utama. Pertama, fungsi `is_valid_chiho` yang berfungsi sebagai pengecek validitas direktori utama (chiho) dengan membandingkan input terhadap daftar direktori yang diizinkan: "starter", "metro", "dragon", "blackrose", "heaven", "youth", dan "7sref". Fungsi ini mengembalikan nilai boolean (1 jika valid, 0 jika tidak).
+
+Kedua, fungsi `get_real_path` yang bertugas mengonversi path virtual menjadi path fisik yang sesuai di sistem file. Fungsi ini memulai dengan mengekstrak nama chiho dari path menggunakan sscanf dan memvalidasinya melalui `is_valid_chiho`. Jika chiho tidak valid, fungsi langsung mengosongkan string hasil agar menandakan path tidak sah.
+
+```
+int dispatch_write(const char *path, const char *buf, size_t size, off_t offset) {
+    char fpath[PATH_MAX];
+    get_real_path(path, fpath);
+    if (strstr(path, "/starter/")) return write_starter(fpath, buf, size, offset);
+    if (strstr(path, "/metro/")) return write_metro(fpath, buf, size, offset);
+    if (strstr(path, "/dragon/")) return write_dragon(fpath, buf, size, offset);
+    if (strstr(path, "/blackrose/")) return write_blackrose(fpath, buf, size, offset);
+    if (strstr(path, "/heaven/")) return write_heaven(fpath, buf, size);
+    if (strstr(path, "/youth/")) return write_youth(fpath, buf, size);
+    if (strstr(path, "/7sref/")) return dispatch_write(fpath, buf, size, offset);
+    return -ENOENT;
+}
+```
+Kode fungsi dispatch_write berfungsi sebagai pengarah `dispatcher` yang menentukan fungsi penulisan `write` mana yang harus dipanggil berdasarkan path file yang diberikan.
+
+Pertama, fungsi ini mengubah path virtual yang diterima menjadi path fisik dengan memanggil `get_real_path`. Hasil path fisik disimpan dalam variabel `fpath`.
+
+Setelah itu, fungsi memeriksa bagian tertentu dari path asli `path` dengan menggunakan `strstr` untuk mencari substring yang mengindikasikan jenis direktori, seperti "/starter/", "/metro/", "/dragon/", dan seterusnya.
+
+```
+static int fs_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
+    char fpath[PATH_MAX];
+    get_real_path(path, fpath);
+    log_action("GETATTR", path);
+    return lstat(fpath, stbuf);
+}
+
+static int fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+                      off_t offset, struct fuse_file_info *fi, enum fuse_readdir_flags flags) {
+    char fpath[PATH_MAX];
+    get_real_path(path, fpath);
+    DIR *dp = opendir(fpath);
+    if (!dp) return -errno;
+    filler(buf, ".", NULL, 0, 0);
+    filler(buf, "..", NULL, 0, 0);
+    struct dirent *de;
+    while ((de = readdir(dp)) != NULL) {
+        if (de->d_name[0] == '.') continue;
+        filler(buf, de->d_name, NULL, 0, 0);
+    }
+    closedir(dp);
+    log_action("READDIR", path);
+    return 0;
+}
+```
+Fungsi pertama, `fs_getattr`, bertugas mengambil atribut dari sebuah file atau direktori yang diberikan lewat `path`. Di dalamnya, path virtual diubah menjadi path fisik dengan `get_real_path`, lalu fungsi mencatat aksi GETATTR menggunakan `log_action`. Setelah itu, fungsi memanggil `lstat` untuk mendapatkan informasi atribut file.
+
+Fungsi kedua, `fs_readdir`, bertugas membaca isi sebuah direktori. Path virtual juga diubah ke path fisik dengan `get_real_path`. Kemudian direktori tersebut dibuka dengan `opendir`. Jika gagal, fungsi mengembalikan kode error yang sesuai. Jika berhasil, fungsi menambahkan dua entri khusus `.` direktori saat ini dan `..` direktori induk ke buffer hasil dengan `filler`. Selanjutnya, fungsi membaca semua isi direktori satu per satu menggunakan `readdir`. Nama-nama file atau direktori yang dimulai dengan titik `.` diabaikan, agar file tersembunyi tidak ditampilkan.
+
+```
+static int fs_open(const char *path, struct fuse_file_info *fi) {
+    char fpath[PATH_MAX];
+    get_real_path(path, fpath);
+    int fd = open(fpath, fi->flags);
+    if (fd == -1) return -errno;
+    close(fd);
+    log_action("OPEN", path);
+    return 0;
+}
+
+static int fs_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+    log_action("READ", path);
+    return dispatch_read(path, buf, size, offset);
+}
+
+static int fs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+    log_action("WRITE", path);
+    return dispatch_write(path, buf, size, offset);
+}
+```
+Fungsi pertama, `fs_open`, bertugas membuka file sesuai path yang diberikan. Pertama, path virtual diterjemahkan ke path fisik menggunakan `get_real_path`. Kemudian fungsi mencoba membuka file dengan flag akses yang diberikan oleh FUSE melalui `fi->flags`. Jika gagal membuka file, fungsi mengembalikan kode error yang sesuai.
+
+Fungsi kedua, `fs_read`, menangani pembacaan isi file. Ia mencatat aksi READ di log, lalu meneruskan operasi baca ke fungsi `dispatch_read`, yang bertugas melakukan pembacaan sebenarnya sesuai tipe file atau direktori yang diakses. Fungsi ini menerima parameter buffer, ukuran data yang dibaca, dan offset posisi baca.
+
+```
+static int fs_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    char fpath[PATH_MAX];
+    get_real_path(path, fpath);
+    int fd = creat(fpath, mode);
+    if (fd == -1) return -errno;
+    close(fd);
+    log_action("CREATE", path);
+    return 0;
+}
+
+static int fs_unlink(const char *path) {
+    char fpath[PATH_MAX];
+    get_real_path(path, fpath);
+    int r = unlink(fpath);
+    log_action("UNLINK", path);
+    return r;
+}
+
+static int fs_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *fi) {
+    char fpath[PATH_MAX];
+    get_real_path(path, fpath);
+    if (strlen(fpath) == 0) return -ENOENT;
+    log_action("UTIMENS", path);
+    return utimensat(0, fpath, tv, 0);
+}
+```
+Fungsi pertama, `fs_create`, berfungsi membuat file baru. Pertama, path virtual diterjemahkan ke path fisik dengan `get_real_path`. Kemudian fungsi memanggil creat untuk membuat file dengan mode akses sesuai parameter. Jika gagal membuat file, fungsi mengembalikan kode error. Dan jika berhasil maka akan certatat dalam log sebagai activity create.
+
+Fungsi kedua, `fs_unlink`, digunakan untuk menghapus file. Setelah path diubah menjadi path fisik, fungsi memanggil unlink untuk menghapus file tersebut. Activity `unlink` dicatat di log, kemudian fungsi mengembalikan hasil operasi `unlink` yang bernilai `0` jika sukses atau kode error jika gagal.
+
+Fungsi ketiga, `fs_utimens`, berfungsi memperbarui waktu akses dan modifikasi file. Setelah path diterjemahkan dan dicek agar tidak kosong, fungsi mencatat activity `utimens` di log lalu memanggil utimensat untuk mengatur waktu file sesuai array `tv` yang berisi waktu akses dan modifikasi baru.
+
+### Screenshot isi starter chiho
+![image](https://github.com/user-attachments/assets/fdf6e29b-8804-42fe-bc70-1569c8b2d7d1)
+### Screenshot isi dragon chiho
+![image](https://github.com/user-attachments/assets/ae25abaa-bca0-4f79-af8d-c70840801714)
+### Screenshot isi metro chiho
+![image](https://github.com/user-attachments/assets/23e03840-9501-4834-bd3a-6bbe0f8f8a14)
+### Screenshot isi blackrose chiho
+![image](https://github.com/user-attachments/assets/cdc537ba-f7e7-424b-a46b-f798974e8e4d)
+![image](https://github.com/user-attachments/assets/e75e161a-170c-4cca-b4ab-16582033b5d6)
+
+
+
+
+
