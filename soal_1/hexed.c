@@ -136,3 +136,179 @@ int main() {
     closedir(dir);
     return 0;
 }
+
+//REVISI
+#define FUSE_USE_VERSION 31
+#include <fuse3/fuse.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <time.h>
+#include <ctype.h>
+
+#define SOURCE_DIR "anomali"
+#define IMAGE_DIR "anomali/image"
+#define LOG_FILE "anomali/conversion.log"
+
+#define MAX_PATH 512
+
+void ensure_image_dir() {
+    struct stat st = {0};
+    if (stat(IMAGE_DIR, &st) == -1) {
+        mkdir(IMAGE_DIR, 0755);
+    }
+}
+
+int is_valid_hex(char c) {
+    return isxdigit(c);
+}
+
+void convert_hex_to_image_if_needed(const char *filename) {
+    char src_path[MAX_PATH];
+    snprintf(src_path, sizeof(src_path), "%s/%s", SOURCE_DIR, filename);
+
+    char base_name[128];
+    strncpy(base_name, filename, sizeof(base_name));
+    char *dot = strstr(base_name, ".txt");
+    if (dot) *dot = '\0';
+
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    char datetime[64];
+    strftime(datetime, sizeof(datetime), "%Y-%m-%d_%H:%M:%S", t);
+
+    char output_file[256];
+    snprintf(output_file, sizeof(output_file), "%s_image_%s.png", base_name, datetime);
+
+    char output_path[MAX_PATH];
+    snprintf(output_path, sizeof(output_path), "%s/%s", IMAGE_DIR, output_file);
+
+    if (access(output_path, F_OK) == 0) return; 
+
+    FILE *infile = fopen(src_path, "r");
+    if (!infile) return;
+
+    fseek(infile, 0, SEEK_END);
+    long size = ftell(infile);
+    rewind(infile);
+
+    char *raw = malloc(size + 1);
+    fread(raw, 1, size, infile);
+    raw[size] = '\0';
+    fclose(infile);
+
+    char *hex = malloc(size + 1);
+    int j = 0;
+    for (int i = 0; i < size; i++) {
+        if (is_valid_hex(raw[i])) hex[j++] = raw[i];
+    }
+    hex[j] = '\0';
+    free(raw);
+
+    if (j < 2 || j % 2 != 0) {
+        free(hex);
+        return;
+    }
+
+    unsigned char *buffer = malloc(j / 2);
+    for (int i = 0; i < j; i += 2) {
+        sscanf(hex + i, "%2hhx", &buffer[i / 2]);
+    }
+
+    FILE *outfile = fopen(output_path, "wb");
+    if (outfile) {
+        fwrite(buffer, 1, j / 2, outfile);
+        fclose(outfile);
+    }
+
+    char logtime[64];
+    strftime(logtime, sizeof(logtime), "%Y-%m-%d][%H:%M:%S", t);
+
+    FILE *logf = fopen(LOG_FILE, "a");
+    if (logf) {
+        fprintf(logf, "[%s]: Successfully converted hexadecimal text %s to %s.\n",
+                logtime, filename, output_file);
+        fclose(logf);
+    }
+
+    free(hex);
+    free(buffer);
+}
+
+// ================= FUSE HANDLERS =====================
+
+static int fs_getattr(const char *path, struct stat *st, struct fuse_file_info *fi) {
+    char full_path[MAX_PATH];
+    snprintf(full_path, sizeof(full_path), "%s%s", SOURCE_DIR, path);
+
+    if (lstat(full_path, st) == -1) return -errno;
+    return 0;
+}
+
+static int fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+                      off_t offset, struct fuse_file_info *fi,
+                      enum fuse_readdir_flags flags) {
+    char dir_path[MAX_PATH];
+    snprintf(dir_path, sizeof(dir_path), "%s%s", SOURCE_DIR, path);
+
+    DIR *dp = opendir(dir_path);
+    if (!dp) return -errno;
+
+    filler(buf, ".", NULL, 0, 0);
+    filler(buf, "..", NULL, 0, 0);
+
+    struct dirent *de;
+    while ((de = readdir(dp)) != NULL) {
+        filler(buf, de->d_name, NULL, 0, 0);
+
+        if (strstr(path, "/image") == NULL && strstr(de->d_name, ".txt")) {
+            convert_hex_to_image_if_needed(de->d_name);
+        }
+    }
+
+    closedir(dp);
+    return 0;
+}
+
+static int fs_open(const char *path, struct fuse_file_info *fi) {
+    char full_path[MAX_PATH];
+    snprintf(full_path, sizeof(full_path), "%s%s", SOURCE_DIR, path);
+
+    FILE *file = fopen(full_path, "r");
+    if (!file) return -errno;
+    fclose(file);
+
+    return 0;
+}
+
+static int fs_read(const char *path, char *buf, size_t size, off_t offset,
+                   struct fuse_file_info *fi) {
+    char full_path[MAX_PATH];
+    snprintf(full_path, sizeof(full_path), "%s%s", SOURCE_DIR, path);
+
+    FILE *file = fopen(full_path, "r");
+    if (!file) return -errno;
+
+    fseek(file, offset, SEEK_SET);
+    size_t res = fread(buf, 1, size, file);
+    fclose(file);
+
+    return res;
+}
+
+// =====================================================
+
+static const struct fuse_operations fs_oper = {
+    .getattr = fs_getattr,
+    .readdir = fs_readdir,
+    .open = fs_open,
+    .read = fs_read,
+};
+
+int main(int argc, char *argv[]) {
+    ensure_image_dir();
+    return fuse_main(argc, argv, &fs_oper, NULL);
+}
