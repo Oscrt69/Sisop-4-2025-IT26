@@ -344,10 +344,6 @@ Fungsi `main` adalah titik awal eksekusi program. Fungsi ini memanggil `fuse_mai
 ### Hasil Output saat baymax jpeg digabung dan diplace di mount_dir
 ![image](https://github.com/user-attachments/assets/e11bb07a-6445-4222-8e98-ac74fafc77eb)
 
-
-
-
-
 # Soal 3
 
 File berbahaya akan di-reverse penamaannya saat di-ls:
@@ -375,7 +371,9 @@ void rot13(char *str) {
 }
 ```
 
-Cara melihat daftar container `docker ps -a` <br>
+### Melihat daftar container <br>
+
+`docker ps -a` 
 
 <img src = "https://github.com/user-attachments/assets/00d41302-73c2-499f-ab1f-4f08c4f97175" width = "500"> <br>
 
@@ -393,7 +391,24 @@ dan lain-lain adalah nama default otomatis yang diberikan oleh Docker.
 ### Cara compile soal ini.<br>
 Jalankan Container dengan `docker-compose up -d`, namun jika setelah mengubah apapun di Dockerfile atau antink.c, gunakan `docker-compose build --no-cache` terlebih dahulu untuk build ulang<br>
 
-Buka terminal baru lalu jalankan `docker exec -it antink-server ls /antink_mount` untuk melihat semua file baik file berbahaya yang di-reverse maupun file biasa <br>
+Sebelum menjalankan dockerfile, pastikan semua paket diinstal ulang:
+
+<img src = "https://github.com/user-attachments/assets/b8e1af11-3d45-46ec-82ee-c5d1c4103955" width = "500" ><br>
+<img src = "https://github.com/user-attachments/assets/91c1f25a-3b2e-4c01-9b51-cba6577021b0" width = "500"> <br>
+
+Jalankan `docker exec -it antink-server ls /antink_mount` untuk melihat semua file baik file berbahaya yang di-reverse maupun file biasa <br>
+
+Folder antink-system berisi:
+
+> it24_host/ → folder sumber berisi file seperti kimcun.txt, nafis.txt, test.txt, dll
+
+> antink_mount/ → folder mount hasil dari FUSE
+
+> antink-logs/ → folder log (termasuk it24.log)
+
+> Dockerfile, docker-compose.yml, antink.c → file program utama dan konfigurasi Docker
+
+Perintah ls dilakukan dari host lokal yaitu antink_mount di luar Docker, hasilnya tidak muncul file apa-apa, meskipun di dalam container ada isi karena `antink_mount` adalah FUSE mount point, dan sistem FUSE sedang berjalan di dalam container Docker, bukan di sistem lokal.
 
 `docker exec antink-server cat /antink_mount/[NAMA FILE]` dengan command ini, file teks normal akan di enkripsi menggunakan ROT13 saat dibaca, sedangkan file teks berbahaya tidak di enkripsi.  <br>
 
