@@ -156,18 +156,112 @@ int write_heaven(const char *fpath, const char *buf, size_t size) {
 int read_youth(const char *fpath, char *buf, size_t size, off_t offset) {
     gzFile gz = gzopen(fpath, "rb");
     if (!gz) return -errno;
-    gzseek(gz, offset, SEEK_SET);
+    if (gzseek(gz, offset, SEEK_SET) == -1) {
+        gzclose(gz);
+        return -EIO;
+    }
     int r = gzread(gz, buf, size);
     gzclose(gz);
     return r;
 }
 int write_youth(const char *fpath, const char *buf, size_t size) {
-    gzFile gz = gzopen(fpath, "wb");
-    if (!gz) return -errno;
-    int w = gzwrite(gz, buf, size);
-    gzclose(gz);
-    return w;
+    size_t out_len = size + size / 10 + 12;  // buffer kompresi lebih besar dari input
+    char *out_buf = malloc(out_len);
+    if (!out_buf) return -ENOMEM;
+
+    int ret = compress_content(buf, size, out_buf, &out_len);
+    if (ret != 0) {
+        free(out_buf);
+        return ret;
+    }
+
+    FILE *fp = fopen(fpath, "wb");
+    if (!fp) {
+        free(out_buf);
+        return -errno;
+    }
+    fwrite(out_buf, 1, out_len, fp);
+    fclose(fp);
+    free(out_buf);
+    return size;
 }
+int youth_compress(const char *src, size_t src_len, char *dest, size_t *dest_len) {
+    z_stream zs;
+    int status;
+
+    // Initialize stream
+    zs.zalloc = NULL;
+    zs.zfree = NULL;
+    zs.opaque = NULL;
+
+    status = deflateInit2(&zs, 5, Z_DEFLATED, 31, 8, Z_DEFAULT_STRATEGY);  // level 5, 31 = 15+16 gzip wrapper
+    if (status != Z_OK) return -EIO;
+
+    zs.next_in = (Bytef *)src;
+    zs.avail_in = (uInt)src_len;
+    zs.next_out = (Bytef *)dest;
+    zs.avail_out = (uInt)*dest_len;
+
+    while (zs.avail_in > 0) {
+        status = deflate(&zs, Z_NO_FLUSH);
+        if (status == Z_STREAM_ERROR) {
+            deflateEnd(&zs);
+            return -EIO;
+        }
+    }
+
+    // Finalize compression
+    for (;;) {
+        status = deflate(&zs, Z_FINISH);
+        if (status == Z_STREAM_END) break;
+        if (status != Z_OK) {
+            deflateEnd(&zs);
+            return -EIO;
+        }
+    }
+
+    *dest_len = zs.total_out;
+    deflateEnd(&zs);
+
+    return 0;
+}
+int youth_decompress(const char *src, size_t src_len, char *dest, size_t *dest_len) {
+    z_stream zs;
+    int status;
+
+    zs.zalloc = NULL;
+    zs.zfree = NULL;
+    zs.opaque = NULL;
+
+    status = inflateInit2(&zs, 47);  // 47 = 32 + 15, auto detect gzip/zlib with windowBits
+    if (status != Z_OK) return -EIO;
+
+    zs.next_in = (Bytef *)src;
+    zs.avail_in = (uInt)src_len;
+    zs.next_out = (Bytef *)dest;
+    zs.avail_out = (uInt)*dest_len;
+
+    while (1) {
+        status = inflate(&zs, Z_NO_FLUSH);
+
+        if (status == Z_STREAM_END) break;
+        if (status != Z_OK) {
+            inflateEnd(&zs);
+            return -EIO;
+        }
+        if (zs.avail_out == 0) {
+            // Output buffer penuh, stop to prevent overflow
+            break;
+        }
+    }
+
+    *dest_len = zs.total_out;
+    inflateEnd(&zs);
+
+    return 0;
+}
+
+
 // lanjutan maimai_fs_v2.c — Dispatcher dan FUSE Handler
 
 #include <sys/time.h>
