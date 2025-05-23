@@ -423,8 +423,8 @@ int main(int argc, char *argv[]) {
 ```
 Fungsi `main` adalah titik awal eksekusi program. Fungsi ini memanggil `fuse_main`, yang menjalankan sistem file FUSE berdasarkan operasi yang sudah didefinisikan dalam `baymax_oper`. Sebelum itu, fungsi memanggil `umask(0)` untuk menonaktifkan mask permission default dari sistem, agar file yang dibuat atau dimodifikasi oleh filesystem ini tidak dibatasi oleh `umask`. `fuse_main` akan memanggil fungsi-fungsi seperti `getattr`, `read`, `open`, atau `readdir` sesuai dengan interaksi user terhadap mount point (misalnya `ls`, `cat`, `stat`, dll). Dengan kata lain, main menginisialisasi dan mengaktifkan filesystem buatan ini.
 
-Revisi
-Terkadang file Baymax.jpeg mengalami crash dan tidak bisa dibuka, mungkin permasalahn terletak pada wsl yang kurang kompetibel dalam mengatasi fuse. Tetapi file baymax dapat dienkripsi menjadi bentuk 1 file yang utuh menimbang crash yang lumayan sering.
+### Revisi
+Terkadang file Baymax.jpeg mengalami crash dan tidak bisa dibuka, mungkin permasalahn terletak pada wsl yang kurang kompetibel dalam mengatasi fuse. Tetapi file baymax dapat dienkripsi menjadi bentuk 1 file yang utuh menimbang crash yang lumayan sering. Solusinya masih belum ditemukan dan struggle sudah dijelaskan saat demo kemarin.
 
 ### Hasil Output activity log dari baymax
 ![image](https://github.com/user-attachments/assets/4ce5563a-ec7a-4b19-863d-c984f26fe62a)
